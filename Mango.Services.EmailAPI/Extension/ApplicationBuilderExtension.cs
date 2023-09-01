@@ -1,6 +1,4 @@
 ﻿using Mango.Services.EmailAPI.Messaging;
-using System.Reflection.Metadata;
-using System.Runtime.CompilerServices;
 
 namespace Mango.Services.EmailAPI.Extension
 {

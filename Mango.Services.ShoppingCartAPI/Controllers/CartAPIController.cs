@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using Azure;
 using Mango.MessageBus;
 using Mango.Services.ShoppingCartAPI.Data;
 using Mango.Services.ShoppingCartAPI.Models;
