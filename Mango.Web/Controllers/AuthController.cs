@@ -22,7 +22,31 @@ namespace Mango.Web.Controllers
             _tokenProvider = tokenProvider;
 		}
 
-		[HttpGet]
+		public async Task<IActionResult> UserIndex()
+		{
+			return View();
+		}
+
+        [HttpGet]
+		public async Task<IActionResult?> GetAll()
+        {
+            IEnumerable<UserDto> userList;
+            ResponseDto? response = await _authService.GetAllUsersAsync();
+
+            if (response != null && response.IsSuccess)
+            {
+				userList = JsonConvert.DeserializeObject<List<UserDto>>(Convert.ToString(response.Result));
+            }
+            else
+            {
+                userList = new List<UserDto>();
+                TempData["error"] = response?.Message;
+            }
+
+			return Json(new { data = userList });
+		}
+
+        [HttpGet]
 		public IActionResult Login()
 		{
 			LoginRequestDto loginRequestDto = new ();
@@ -47,6 +71,24 @@ namespace Mango.Web.Controllers
                 return View(obj);
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> BulkRegister(BulkRegistrationDto bulkRegistrationDto)
+        {
+            ResponseDto result = await _authService.BulkRegisterAsync(bulkRegistrationDto);
+
+            if (result != null && result.IsSuccess)
+            {
+				TempData["success"] = "Registration Successful";
+				return RedirectToAction(nameof(UserIndex));
+			}
+			else
+			{
+				TempData["error"] = result.Message;
+			}
+
+            return View();
+		}
 
         [HttpGet]
 		public IActionResult Register()
@@ -118,7 +160,7 @@ namespace Mango.Web.Controllers
             identity.AddClaim(new Claim(JwtRegisteredClaimNames.Email, jwt.Claims.FirstOrDefault(u => u.Type == JwtRegisteredClaimNames.Email).Value));
             identity.AddClaim(new Claim(JwtRegisteredClaimNames.Sub, jwt.Claims.FirstOrDefault(u => u.Type == JwtRegisteredClaimNames.Sub).Value));
             identity.AddClaim(new Claim(JwtRegisteredClaimNames.Name, jwt.Claims.FirstOrDefault(u => u.Type == JwtRegisteredClaimNames.Name).Value));
-            identity.AddClaim(new Claim(ClaimTypes.Name, jwt.Claims.FirstOrDefault(u => u.Type == JwtRegisteredClaimNames.Name).Value));
+			identity.AddClaim(new Claim(ClaimTypes.Name, jwt.Claims.FirstOrDefault(u => u.Type == JwtRegisteredClaimNames.Name).Value));
             identity.AddClaim(new Claim(ClaimTypes.Role, jwt.Claims.FirstOrDefault(u => u.Type == "role").Value));
 
 

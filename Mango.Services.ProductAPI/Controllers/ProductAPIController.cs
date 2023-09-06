@@ -71,11 +71,37 @@ namespace Mango.Services.ProductAPI.Controllers
 		}
 		[HttpPost]
 		[Authorize(Roles = "ADMIN")]
-		public ResponseDto Post([FromBody] ProductDto productDto)
+		public ResponseDto Post(ProductDto productDto)
 		{
 			try
 			{
-				_db.Products.Add(_mapper.Map<Product>(productDto));
+				Product product = _mapper.Map<Product>(productDto);
+
+				_db.Products.Add(product);
+				_db.SaveChanges();
+
+				if(productDto.Image != null)
+				{
+					// Rename the file to be the product ID, but we also want to append the existing
+					// file extension from the dto
+					string fileName = product.ProductID + Path.GetExtension(productDto.Image.FileName);
+					string filePath = @"wwwroot/ProductImages/" + fileName;
+					var filePathDirectory = Path.Combine(Directory.GetCurrentDirectory(), filePath);
+					using (var fileStream = new FileStream(filePathDirectory, FileMode.Create))
+					{
+						productDto.Image.CopyTo(fileStream);
+					}
+
+					var baseURL = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.Value}{HttpContext.Request.PathBase.Value}";
+					product.ImageUrl = baseURL + "/ProductImages/" + fileName;
+					product.ImageLocalPath = filePath;
+				}
+				else
+				{
+					product.ImageUrl = "https://placehold.co/600x400";
+				}
+
+				_db.Products.Update(product);
 				_db.SaveChanges();
 
 				_response.Result = productDto;
@@ -91,12 +117,46 @@ namespace Mango.Services.ProductAPI.Controllers
 
 		[HttpPut]
 		[Authorize(Roles = "ADMIN")]
-		public ResponseDto Put([FromBody] ProductDto productDto)
+		public ResponseDto Put(ProductDto productDto)
 		{
 			try
 			{
-				_db.Products.Update(_mapper.Map<Product>(productDto));
-				_db.SaveChanges();
+				Product product = _mapper.Map<Product>(productDto);
+
+                if (productDto.Image != null)
+                {
+					// Delete the existing image
+                    if (!string.IsNullOrEmpty(product.ImageLocalPath))
+                    {
+                        // Get the file path
+                        var oldFilePathDirectory = Path.Combine(Directory.GetCurrentDirectory(), product.ImageLocalPath);
+
+                        // Get the file
+                        FileInfo file = new FileInfo(oldFilePathDirectory);
+
+                        if (file.Exists)
+                        {
+                            file.Delete();
+                        }
+                    }
+
+                    // Rename the file to be the product ID, but we also want to append the existing
+                    // file extension from the dto
+                    string fileName = product.ProductID + Path.GetExtension(productDto.Image.FileName);
+                    string filePath = @"wwwroot/ProductImages/" + fileName;
+                    var filePathDirectory = Path.Combine(Directory.GetCurrentDirectory(), filePath);
+                    using (var fileStream = new FileStream(filePathDirectory, FileMode.Create))
+                    {
+                        productDto.Image.CopyTo(fileStream);
+                    }
+
+                    var baseURL = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host.Value}{HttpContext.Request.PathBase.Value}";
+                    product.ImageUrl = baseURL + "/ProductImages/" + fileName;
+                    product.ImageLocalPath = filePath;
+                }
+
+				_db.Products.Update(product);
+               _db.SaveChanges();
 
 				_response.Result = productDto;
 			}
@@ -117,6 +177,22 @@ namespace Mango.Services.ProductAPI.Controllers
 			try
 			{
 				Product obj = _db.Products.First(u => u.ProductID == id);
+
+				// If a picture is stored, we want to delete it as well
+				if(!string.IsNullOrEmpty(obj.ImageLocalPath))
+				{
+					// Get the file path
+					var oldFilePathDirectory = Path.Combine(Directory.GetCurrentDirectory(), obj.ImageLocalPath);
+
+					// Get the file
+					FileInfo file = new FileInfo(oldFilePathDirectory);
+
+					if(file.Exists)
+					{
+						file.Delete();
+					}
+				}
+
 				_db.Products.Remove(obj);
 				_db.SaveChanges();
 			}

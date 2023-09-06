@@ -40,7 +40,7 @@ namespace Mango.Web.Service
             {
                 ApiType = SD.ApiType.GET,
                 Data = userID,
-                Url = SD.OrderAPIBase + orderAPI + "/GetOrders"
+                Url = SD.OrderAPIBase + orderAPI + "/GetOrders/" + userID
             });
         }
 
